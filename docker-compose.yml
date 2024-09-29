@@ -1,0 +1,53 @@
+version: '3.8'  # Especifica la versión de Docker Compose que estás utilizando. La versión 3.8 es compatible con las características más recientes.
+
+services:
+  web:
+    build: .  # Construye la imagen de Docker usando el Dockerfile en el directorio actual (indicado por el punto).
+    
+    # Comando modificado para ejecutar migraciones antes de iniciar el servidor de Django.
+    # Esto asegura que la base de datos esté actualizada antes de que la aplicación se inicie.
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    
+    volumes:
+      - .:/app  # Monta el directorio actual (.) en el contenedor en el directorio /app. Esto permite que los cambios locales se reflejen en el contenedor (útil para desarrollo).
+      - static_volume:/app/static  # Mapea el directorio estático a un volumen para persistir los archivos generados por collectstatic.
+    
+    ports:
+      - "8000:8000"  # Mapea el puerto 8000 del contenedor al puerto 8000 de la máquina anfitriona. Esto permite acceder a la aplicación desde el navegador en http://localhost:8000.
+    
+    environment:
+      # Variables de entorno necesarias para Django y la configuración de la base de datos.
+      - DEBUG=True  # Cambia a False en producción para mayor seguridad y rendimiento.
+      - DJANGO_SETTINGS_MODULE=api.settings  # Especifica el módulo de configuración de Django. Asegúrate de que apunte a `api/settings.py`.
+      - DB_NAME=${DB_NAME}  # Carga la variable DB_NAME desde el archivo .env para definir el nombre de la base de datos en Django.
+      - DB_USER=${DB_USER}  # Carga la variable DB_USER desde el archivo .env para definir el usuario de la base de datos.
+      - DB_PASSWORD=${DB_PASSWORD}  # Carga la variable DB_PASSWORD desde el archivo .env para definir la contraseña del usuario de la base de datos.
+      - DB_HOST=db  # Define que la base de datos está alojada en el servicio `db` definido más adelante. Docker Compose utiliza el nombre del servicio como hostname.
+      - DB_PORT=5432  # Especifica el puerto en el que se ejecuta PostgreSQL (5432 por defecto).
+    
+    depends_on:
+      - db  # Establece una dependencia para asegurarse de que el servicio `web` se inicie solo después de que el servicio `db` esté corriendo.
+    
+    restart: always  # Define que el contenedor `web` se reinicie automáticamente si falla.
+
+  db:
+    image: postgres:13  # Utiliza la imagen oficial de PostgreSQL versión 13 para crear el contenedor de la base de datos.
+    
+    environment:
+      # Variables de entorno necesarias para configurar PostgreSQL.
+      POSTGRES_DB: ${DB_NAME}  # Carga la variable DB_NAME desde el archivo .env para definir el nombre de la base de datos en PostgreSQL.
+      POSTGRES_USER: ${DB_USER}  # Carga la variable DB_USER desde el archivo .env para definir el usuario de la base de datos.
+      POSTGRES_PASSWORD: ${DB_PASSWORD}  # Carga la variable DB_PASSWORD desde el archivo .env para definir la contraseña del usuario de la base de datos.
+    
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Define un volumen llamado postgres_data para persistir los datos de la base de datos. Esto asegura que los datos no se pierdan si el contenedor se reinicia.
+    
+    ports:
+      - "5432:5432"  # Mapea el puerto 5432 del contenedor al puerto 5432 de la máquina anfitriona. Esto permite acceder a la base de datos desde fuera del contenedor (si es necesario).
+    
+    restart: always  # Define que el contenedor `db` se reinicie automáticamente si falla.
+
+# Definición de los volúmenes compartidos entre los contenedores para persistir los datos.
+volumes:
+  postgres_data:  # Define un volumen para persistir los datos de PostgreSQL. Esto asegura que los datos de la base de datos se mantengan incluso si el contenedor se detiene o se reinicia.
+  static_volume:  # Define un volumen para persistir los archivos estáticos generados por collectstatic.

@@ -18,7 +18,7 @@ services:
     environment:
       # Variables de entorno necesarias para Django y la configuración de la base de datos.
       - DEBUG=True  # Cambia a False en producción para mayor seguridad y rendimiento.
-      - DJANGO_SETTINGS_MODULE=api.settings  # Especifica el módulo de configuración de Django. Asegúrate de que apunte a `api/settings.py`.
+      - DJANGO_SETTINGS_MODULE=ml_web.settings  # Especifica el módulo de configuración de Django. Asegúrate de que apunte a `ml_web/settings.py`.
       - DB_NAME=${DB_NAME}  # Carga la variable DB_NAME desde el archivo .env para definir el nombre de la base de datos en Django.
       - DB_USER=${DB_USER}  # Carga la variable DB_USER desde el archivo .env para definir el usuario de la base de datos.
       - DB_PASSWORD=${DB_PASSWORD}  # Carga la variable DB_PASSWORD desde el archivo .env para definir la contraseña del usuario de la base de datos.

@@ -118,7 +118,7 @@ USE_TZ = True
 
 STATIC_URL = os.getenv('STATIC_URL', '/static/')
 # Comentar STATIC_ROOT en desarrollo, agregarlo solo en producción
-# STATIC_ROOT = os.path.join(BASE_DIR, 'static') # Define la carpeta donde Django copiará todos los archivos estáticos cuando ejecutas el comando collectstatic
+STATIC_ROOT = os.path.join(BASE_DIR, 'static') # Define la carpeta donde Django copiará todos los archivos estáticos cuando ejecutas el comando collectstatic
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'extra_static'),
 ]

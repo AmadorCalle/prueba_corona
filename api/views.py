@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from .serializers import PredictionSerializer
 from .ml_model.model_loader import load_model
+from django.contrib.auth import logout
+from django.http import JsonResponse
 import base64
 import io
 import numpy as np

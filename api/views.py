@@ -1,48 +1,77 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import PredictionSerializer
-from .ml_model.model_loader import load_model
-from django.contrib.auth import logout
-from django.http import JsonResponse
+from .serializers import PredictionSerializer, ImageRequestSerializer
+from .models import ImageRequest
 import base64
 import io
-import numpy as np
 from PIL import Image
+import numpy as np
+from .ml_model.model_loader import load_model
+import uuid
 
-# Cargar el modelo entrenado una vez usando la función load_model
+# Cargar el modelo de ML
 model = load_model("clf.pickle")
 
 class PredictionView(APIView):
     def post(self, request):
+        print("Datos recibidos:", request.data)  # Confirmar datos recibidos
+        
+        # Validar los datos con el PredictionSerializer
         serializer = PredictionSerializer(data=request.data)
+        
         if serializer.is_valid():
             try:
-                # Decodificar la imagen en base64
-                image_data = base64.b64decode(serializer.validated_data['image'])
-                image = Image.open(io.BytesIO(image_data))
+                print("Datos validados:", serializer.validated_data)  # Confirmar datos validados
                 
+                # Obtener la cadena base64 sin decodificar
+                base64_image = serializer.validated_data['image']
+
+                # Preparar los datos para el serializador de ImageRequest
+                image_request_data = {
+                    'request_id': serializer.validated_data['request_id'],
+                    'image': base64_image,  # Guardar la imagen en formato base64
+                    'model_used': serializer.validated_data['modelo']
+                }
+
+                # Usar el ImageRequestSerializer para guardar el registro en la base de datos
+                image_request_serializer = ImageRequestSerializer(data=image_request_data)
+                
+                if image_request_serializer.is_valid():
+                    saved_image_request = image_request_serializer.save()  # Guarda el registro en la base de datos
+                    print(f"Registro guardado: {saved_image_request}")  # Confirmar que se guardó
+
+                else:
+                    print(f"Errores al intentar guardar: {image_request_serializer.errors}")  # Mostrar errores de validación
+                    return Response(image_request_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+                # Decodificar la imagen base64 para hacer predicciones
+                image_data = base64.b64decode(base64_image)
+                image = Image.open(io.BytesIO(image_data))
+
                 # Convertir la imagen a un array de numpy y preprocesarla
                 number = np.round((np.array(image) / 255) * 16)
-                
-                # Verificar si el número de características es el esperado (64 características)
+
                 if number.size != 64:
                     return Response({
                         'error': 'La imagen debe tener exactamente 64 características (8x8 píxeles).'
                     }, status=status.HTTP_400_BAD_REQUEST)
-                
+
                 # Realizar la predicción
                 prediction = model.predict(number.reshape(1, -1))
-                
+
                 return Response({
                     'request_id': serializer.validated_data['request_id'],
-                    'prediction': prediction.tolist()  # Convertir la predicción a lista para que sea serializable
+                    'prediction': prediction.tolist(),
+                    'message': 'Datos guardados correctamente.'  # Mensaje de confirmación
                 }, status=status.HTTP_200_OK)
-            
+
             except Exception as e:
+                print(f"Error al procesar la solicitud: {str(e)}")  # Mostrar cualquier excepción
                 return Response({
                     'error': f'Error al procesar la imagen: {str(e)}'
                 }, status=status.HTTP_400_BAD_REQUEST)
-        
+
         # Si los datos no son válidos, devolver errores de validación
+        print(f"Errores de validación: {serializer.errors}")  # Mostrar errores de validación en el serializador
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

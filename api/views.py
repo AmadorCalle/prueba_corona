@@ -46,19 +46,28 @@ class PredictionView(APIView):
                     return Response(image_request_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
                 # Decodificar la imagen base64 para hacer predicciones
-                image_data = base64.b64decode(base64_image)
+                try:
+                    image_data = base64.b64decode(base64_image)
+                except Exception as decode_error:
+                    print(f"Error al decodificar la imagen base64: {str(decode_error)}")
+                    return Response({
+                        'error': f'Error al decodificar la imagen: {str(decode_error)}'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
                 image = Image.open(io.BytesIO(image_data))
 
                 # Convertir la imagen a un array de numpy y preprocesarla
                 number = np.round((np.array(image) / 255) * 16)
 
                 if number.size != 64:
+                    print(f"Error: la imagen tiene {number.size} características, se esperaban 64.")
                     return Response({
                         'error': 'La imagen debe tener exactamente 64 características (8x8 píxeles).'
                     }, status=status.HTTP_400_BAD_REQUEST)
 
                 # Realizar la predicción
                 prediction = model.predict(number.reshape(1, -1))
+                print(f"Predicción realizada: {prediction}")
 
                 return Response({
                     'request_id': serializer.validated_data['request_id'],

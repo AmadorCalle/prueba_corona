@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Formulario de Predicción</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Formulario de Predicción</h1>
+        <form action="{% url 'prediction_success' %}" method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="image">Imagen (Base64):</label>
+                <input type="text" class="form-control" id="image" name="image" required>
+            </div>
+            <div class="form-group">
+                <label for="modelo">Modelo:</label>
+                <input type="text" class="form-control" id="modelo" name="modelo" required>
+            </div>
+            <div class="form-group">
+                <label for="request_id">Request ID:</label>
+                <input type="text" class="form-control" id="request_id" name="request_id" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Enviar</button>
+        </form>
+    </div>
+</body>
+</html>

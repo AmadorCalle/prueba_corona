@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Resultado de la Predicción</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Resultado de la Predicción</h1>
+        {% if prediction %}
+            <div class="alert alert-success">
+                <strong>Predicción:</strong> {{ prediction }}
+            </div>
+        {% elif error %}
+            <div class="alert alert-danger">
+                <strong>Error:</strong> {{ error }}
+            </div>
+        {% endif %}
+        <a href="{% url 'token_auth_form' %}" class="btn btn-primary">Volver</a>
+    </div>
+</body>
+</html>

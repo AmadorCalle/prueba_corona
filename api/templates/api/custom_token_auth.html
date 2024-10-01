@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Obtener Token de Autenticación</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Obtener Token de Autenticación</h1>
+        <form id="auth-form" method="post">
+            <div class="form-group">
+                <label for="username">Nombre de Usuario:</label>
+                <input type="text" class="form-control" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Contraseña:</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Obtener Token</button>
+        </form>
+        <div id="token-result" style="margin-top: 20px;"></div>
+        <button id="predict-button" class="btn btn-success" style="display: none;" onclick="window.location.href='{% url 'prediction_form' %}'">Ir a Predicción</button>
+    </div>
+    <script>
+        document.getElementById('auth-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            var formData = new FormData(this);
+            fetch("{% url 'custom_token_auth' %}", {
+                method: 'POST',
+                body: JSON.stringify({
+                    username: formData.get('username'),
+                    password: formData.get('password')
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.token) {
+                    document.getElementById('token-result').innerHTML = '<div class="alert alert-success">Token: ' + data.token + '</div>';
+                    document.getElementById('predict-button').style.display = 'block';
+                } else {
+                    document.getElementById('token-result').innerHTML = '<div class="alert alert-danger">Error: ' + data.error + '</div>';
+                    document.getElementById('predict-button').style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

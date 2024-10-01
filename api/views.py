@@ -30,7 +30,7 @@ class PredictionView(APIView):
                 # Preparar los datos para el serializador de ImageRequest
                 image_request_data = {
                     'request_id': serializer.validated_data['request_id'],
-                    'image': base64_image,  # Guardar la imagen en formato base64
+                    'image': base64_image,
                     'model_used': serializer.validated_data['modelo']
                 }
 
@@ -38,11 +38,11 @@ class PredictionView(APIView):
                 image_request_serializer = ImageRequestSerializer(data=image_request_data)
                 
                 if image_request_serializer.is_valid():
-                    saved_image_request = image_request_serializer.save()  # Guarda el registro en la base de datos
-                    print(f"Registro guardado: {saved_image_request}")  # Confirmar que se guardó
+                    saved_image_request = image_request_serializer.save()
+                    print(f"Registro guardado: {saved_image_request}")
 
                 else:
-                    print(f"Errores al intentar guardar: {image_request_serializer.errors}")  # Mostrar errores de validación
+                    print(f"Errores al intentar guardar: {image_request_serializer.errors}")
                     return Response(image_request_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
                 # Decodificar la imagen base64 para hacer predicciones
@@ -72,7 +72,7 @@ class PredictionView(APIView):
                 return Response({
                     'request_id': serializer.validated_data['request_id'],
                     'prediction': prediction.tolist(),
-                    'message': 'Datos guardados correctamente.'  # Mensaje de confirmación
+                    'message': 'Datos guardados correctamente.'
                 }, status=status.HTTP_200_OK)
 
             except Exception as e:
@@ -81,6 +81,6 @@ class PredictionView(APIView):
                     'error': f'Error al procesar la imagen: {str(e)}'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Si los datos no son válidos, devolver errores de validación
+        
         print(f"Errores de validación: {serializer.errors}")  # Mostrar errores de validación en el serializador
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

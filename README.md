@@ -4,9 +4,9 @@ Este proyecto es una API desarrollada con Django y Django REST Framework que per
 ## Lo que aprenderás siguendo esta guía
 Esta guía te permitirá usar la API en su despliegue en la dirección http://34.174.155.71/api/predict/. Tenemos 3 secciones sobre el uso de la API. En la primera sección aprenderás a usarla y en las dos siguientes tendrás una breve descripción de parámetros técnicos.
 
-1. Primer contacto: autenticación
-2. Endpoints
-3. Latencia
+1. Primer contacto: autenticación.
+2. Endpoints.
+3. Latencia.
 
 ## 1. Primer contacto: autenticación
 Cuando ingreses a la dirección proporcionada anteriormente te encontrarás con la interfaz de usuario de Django REST framework.
@@ -48,14 +48,14 @@ Cliqueamos en "Send" y en el recuadro inferior (zona de resultados) obtendremos 
 
 ```
 {
-    "token": "a7b5c2d9f3e1g8h6i4j0k5l2m9n8o7p6q5r4s3t2"
+    "token": "f9846b993b5f7c3aad67475f21ad351c84cbc8ec"
 }
 ```
 Este es el token asignado al usuario "usuario_1" y "contra_987@".
 
 ### 1.2. Clasificación de imágenes mediante la API
 
-Ahora que conocemos el token asociado a un usuario (username: usuario_1, password: contra_987@, token: a7b5c2d9f3e1g8h6i4j0k5l2m9n8o7p6q5r4s3t2), entonces procedemos a hacer la solicitud a la API con la que obtendremos el resultado del modelo, es decir, la clasificación de nuestra imagen.
+Ahora que conocemos el token asociado a un usuario (username: usuario_1, password: contra_987@, token: f9846b993b5f7c3aad67475f21ad351c84cbc8ec), entonces procedemos a hacer la solicitud a la API con la que obtendremos el resultado del modelo, es decir, la clasificación de nuestra imagen.
 
 La solicitud por Postman será la siguiente:
 * Método HTTP: POST
@@ -65,7 +65,7 @@ Ahora tendremos dos Headers:
 * Key: Content-Type
 * Value: application/json
 * Key: Authorization
-* Value: Token a7b5c2d9f3e1g8h6i4j0k5l2m9n8o7p6q5r4s3t2
+* Value: Token f9846b993b5f7c3aad67475f21ad351c84cbc8ec
 
 Cambia el contenido del recuadro de Body:
 * raw

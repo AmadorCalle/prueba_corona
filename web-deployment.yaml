@@ -1,59 +1,78 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: apps/v1  # Versión de la API para el Deployment
+kind: Deployment  # Tipo de recurso
 metadata:
-  name: web
+  name: web  # Nombre del Deployment
 spec:
-  replicas: 1
+  replicas: 2  # Réplicas aumentadas para alta disponibilidad
   selector:
     matchLabels:
-      app: web
+      app: web  # Selector de etiquetas
   template:
     metadata:
       labels:
-        app: web
+        app: web  # Etiquetas del Pod
     spec:
       containers:
-      - name: web
-        image: gcr.io/ml-web-project-437118/ml_web_api:v1.3
+      - name: web  # Nombre del contenedor
+        image: gcr.io/ml-web-project-437118/ml_web_api:v1.6  # Imagen del contenedor
         ports:
-        - containerPort: 8000
+        - containerPort: 8000  # Puerto del contenedor
         env:
-        - name: DB_NAME
+        - name: DB_NAME  # Variable de entorno para el nombre de la base de datos
           valueFrom:
             secretKeyRef:
-              name: db-secret
+              name: db-secret  # Referencia al secreto
               key: DB_NAME
-        - name: DB_USER
+        - name: DB_USER  # Variable de entorno para el usuario de la base de datos
           valueFrom:
             secretKeyRef:
-              name: db-secret
+              name: db-secret  # Referencia al secreto
               key: DB_USER
-        - name: DB_PASSWORD
+        - name: DB_PASSWORD  # Variable de entorno para la contraseña de la base de datos
           valueFrom:
             secretKeyRef:
-              name: db-secret
+              name: db-secret  # Referencia al secreto
               key: DB_PASSWORD
-        - name: DB_HOST
+        - name: DB_HOST  # Variable de entorno para el host de la base de datos
           value: postgres-service
-        - name: DB_PORT
+        - name: DB_PORT  # Variable de entorno para el puerto de la base de datos
           value: "5432"
+        resources:  # Límites y solicitudes de recursos
+          requests:
+            memory: "256Mi"  # Memoria mínima solicitada
+            cpu: "250m"      # CPU mínima solicitada
+          limits:
+            memory: "512Mi"  # Límite máximo de memoria
+            cpu: "500m"      # Límite máximo de CPU
         volumeMounts:
-        - name: static-volume
-          mountPath: /app/static
+        - name: static-volume  # Volumen montado
+          mountPath: /app/static  # Ruta de montaje
+        livenessProbe:  # Verificación de salud del contenedor
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:  # Verificación de disponibilidad del contenedor
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
       volumes:
-      - name: static-volume
+      - name: static-volume  # Volumen persistente
         persistentVolumeClaim:
-          claimName: static-pvc
+          claimName: static-pvc  # Nombre del PVC
 ---
-apiVersion: v1
-kind: Service
+apiVersion: v1  # Versión de la API para el Service
+kind: Service  # Tipo de recurso
 metadata:
-  name: web-service
+  name: web-service  # Nombre del Service
 spec:
   selector:
-    app: web
+    app: web  # Selector de etiquetas
   ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 8000
-  type: LoadBalancer
+    - protocol: TCP  # Protocolo
+      port: 80  # Puerto del Service
+      targetPort: 8000  # Puerto del contenedor
+  type: LoadBalancer  # Tipo de Service

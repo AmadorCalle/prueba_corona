@@ -1,61 +1,61 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: apps/v1  # Versión de la API para el Deployment
+kind: Deployment  # Tipo de recurso
 metadata:
-  name: postgres
+  name: postgres  # Nombre del Deployment
 spec:
-  replicas: 1
+  replicas: 1  # Número de réplicas
   selector:
     matchLabels:
-      app: postgres
+      app: postgres  # Selector de etiquetas
   template:
     metadata:
       labels:
-        app: postgres
+        app: postgres  # Etiquetas del Pod
     spec:
       initContainers:
-      - name: init-cleaner
-        image: busybox
-        command: ['sh', '-c', 'rm -rf /var/lib/postgresql/data/*']
+      - name: init-cleaner  # Contenedor de inicialización
+        image: busybox  # Imagen del contenedor
+        command: ['sh', '-c', 'rm -rf /var/lib/postgresql/data/*']  # Comando para limpiar datos
         volumeMounts:
-        - name: postgres-data
-          mountPath: /var/lib/postgresql/data
+        - name: postgres-data  # Volumen montado
+          mountPath: /var/lib/postgresql/data  # Ruta de montaje
       containers:
-      - name: postgres
-        image: postgres:13
+      - name: postgres  # Contenedor principal
+        image: postgres:13  # Imagen de PostgreSQL
         ports:
-        - containerPort: 5432
+        - containerPort: 5432  # Puerto del contenedor
         env:
-        - name: POSTGRES_DB
+        - name: POSTGRES_DB  # Variable de entorno para el nombre de la base de datos
           valueFrom:
             secretKeyRef:
-              name: db-secret
+              name: db-secret  # Referencia al secreto
               key: DB_NAME
-        - name: POSTGRES_USER
+        - name: POSTGRES_USER  # Variable de entorno para el usuario de la base de datos
           valueFrom:
             secretKeyRef:
-              name: db-secret
+              name: db-secret  # Referencia al secreto
               key: DB_USER
-        - name: POSTGRES_PASSWORD
+        - name: POSTGRES_PASSWORD  # Variable de entorno para la contraseña de la base de datos
           valueFrom:
             secretKeyRef:
-              name: db-secret
+              name: db-secret  # Referencia al secreto
               key: DB_PASSWORD
         volumeMounts:
-        - name: postgres-data
-          mountPath: /var/lib/postgresql/data
+        - name: postgres-data  # Volumen montado
+          mountPath: /var/lib/postgresql/data  # Ruta de montaje
       volumes:
-      - name: postgres-data
+      - name: postgres-data  # Volumen persistente
         persistentVolumeClaim:
-          claimName: postgres-pvc
+          claimName: postgres-pvc  # Nombre del PVC
 ---
-apiVersion: v1
-kind: Service
+apiVersion: v1  # Versión de la API para el Service
+kind: Service  # Tipo de recurso
 metadata:
-  name: postgres-service
+  name: postgres-service  # Nombre del Service
 spec:
   selector:
-    app: postgres
+    app: postgres  # Selector de etiquetas
   ports:
-    - protocol: TCP
-      port: 5432
-      targetPort: 5432
+    - protocol: TCP  # Protocolo
+      port: 5432  # Puerto del Service
+      targetPort: 5432  # Puerto del contenedor

@@ -4,6 +4,9 @@ FROM python:3.9-slim
 # Establecer el directorio de trabajo dentro del contenedor
 WORKDIR /app
 
+# Instalar netcat-openbsd para el healthcheck de la base de datos
+RUN apt-get update && apt-get install -y netcat-openbsd postgresql-client
+
 # Copiar solo los archivos necesarios para la instalación de dependencias
 COPY requirements.txt .
 
@@ -23,11 +26,17 @@ ENV PYTHONUNBUFFERED=1
 # Crear un directorio para archivos estáticos
 RUN mkdir -p /app/static
 
-# Ejecutar el comando collectstatic durante la construcción del contenedor
-RUN python manage.py collectstatic --noinput
+# Copiar el script de entrypoint
+COPY ./entrypoint.sh /entrypoint.sh
+
+# Dar permisos de ejecución al script de entrypoint
+RUN chmod +x /entrypoint.sh
 
 # Exponer el puerto 8000 para el servidor de desarrollo de Django
 EXPOSE 8000
 
-# Ejecutar las migraciones y levantar el servidor de Django
-CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+# Definir el entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
+
+# Comando por defecto para ejecutar el servidor de Django
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

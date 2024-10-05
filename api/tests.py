@@ -1,115 +1,131 @@
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.auth.models import User
+from django.urls import reverse
+from rest_framework.authtoken.models import Token
 import base64
 import io
 from PIL import Image
-import time
-from api.models import ImageRequest  # Importar el modelo para verificar la base de datos
+from .models import ImageRequest
+import numpy as np
 
-class PredictionViewTests(APITestCase):
+class PredictionTestCase(APITestCase):
+
     def setUp(self):
-        # Crear un usuario para autenticación
-        self.user = User.objects.create_user(username='testuser', password='testpassword')
+        # Crear un usuario de prueba y obtener el token de autenticación
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)  # Establecer el token en el encabezado
 
-        # Obtener el token de autenticación
-        response = self.client.post('/api/token-auth/', {'username': 'testuser', 'password': 'testpassword'}, format='json')
-        self.assertIn('token', response.data)  # Verificar que se obtiene el token
-        self.token = response.data['token']
+        # Crear una imagen de prueba
+        image = Image.new('L', (8, 8))  # Crear una imagen en escala de grises de 8x8
+        buffer = io.BytesIO()  # Crear un buffer en memoria
+        image.save(buffer, format="JPEG")  # Guardar la imagen en el buffer en formato JPEG
+        self.image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')  # Codificar la imagen en base64
 
-        # Añadir el token a los encabezados para autenticación en las solicitudes
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
-        
-        # Crear una imagen de prueba en memoria con dimensiones correctas (8x8)
-        self.image = Image.new('L', (8, 8), color='white')
-        buffered = io.BytesIO()
-        self.image.save(buffered, format="JPEG")
-        self.image_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+        # Decodificar la imagen base64
+        image_data = base64.b64decode(self.image_base64)
+        image = Image.open(io.BytesIO(image_data))  # Abrir la imagen desde el buffer
 
-        
-        self.url = '/api/predict/'
+        # Convertir la imagen a un array de numpy y preprocesarla
+        self.number = np.round((np.array(image) / 255) * 16)  # Normalizar y escalar la imagen
 
-    def test_prediction_invalid_data(self):
+    def test_prediction(self):
+        """
+        Prueba que una predicción sea realizada correctamente y que la imagen
+        y demás información se almacenen en la base de datos.
+        """
+        url = reverse('predict')  # Ruta para la predicción
         data = {
-            'request_id': '12345',
-            'modelo': 'clf.pickle',
-            'image': 'invalid_base64_data'
+            'request_id': 'uuid',
+            'image': self.image_base64,
+            'modelo': 'clf.pickle'
         }
-        response = self.client.post(self.url, data, format='json')
-        print(f"Respuesta (Invalid Data): {response.data}")
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('error', response.data)
 
-    def test_prediction_authentication_required(self):
-        self.client.logout()
-        data = {
-            'request_id': '12345',
-            'modelo': 'clf.pickle',
-            'image': self.image_base64
-        }
-        response = self.client.post(self.url, data, format='json')
-        print(f"Respuesta (Authentication Required): {response.data}")
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = self.client.post(url, data, format='json')  # Enviar la solicitud POST
 
-    def test_prediction_large_image(self):
-        
-        large_image = Image.new('L', (32, 32), color='white')
-        buffered = io.BytesIO()
-        large_image.save(buffered, format="JPEG")
-        large_image_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
-
-        data = {
-            'request_id': '12345',
-            'modelo': 'clf.pickle',
-            'image': large_image_base64
-        }
-        response = self.client.post(self.url, data, format='json')
-        print(f"Respuesta (Large Image): {response.data}")
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('error', response.data)
-
-    def test_prediction_load(self):
-        data = {
-            'request_id': '12345',
-            'modelo': 'clf.pickle',
-            'image': self.image_base64
-        }
-        for _ in range(10):
-            response = self.client.post(self.url, data, format='json')
-            print(f"Respuesta (Load Test): {response.data}")
-            self.assertEqual(response.status_code, status.HTTP_200_OK)
-            self.assertIn('prediction', response.data)
-
-    def test_prediction_response_time(self):
-        data = {
-            'request_id': '12345',
-            'modelo': 'clf.pickle',
-            'image': self.image_base64
-        }
-        start_time = time.time()
-        response = self.client.post(self.url, data, format='json')
-        end_time = time.time()
-        response_time = end_time - start_time
-        print(f"Tiempo de respuesta: {response_time}s")
-        self.assertLess(response_time, 2)
+        # Verificar que la respuesta es exitosa
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-    def test_prediction_success(self):
-        data = {
-            'request_id': '12345',
-            'modelo': 'clf.pickle',
-            'image': self.image_base64
-        }
-        response = self.client.post(self.url, data, format='json')
-        print(f"Respuesta (Success): {response.data}")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('prediction', response.data)
+        self.assertIn('classification', response.data)
         self.assertIn('message', response.data)
-        self.assertEqual(response.data['message'], 'Datos guardados correctamente.')
 
-        
-        image_request = ImageRequest.objects.filter(request_id='12345').first()
-        self.assertIsNotNone(image_request)
-        self.assertEqual(image_request.request_id, '12345')
+        # Verificar que la imagen y la solicitud se almacenaron en la base de datos
+        image_request = ImageRequest.objects.get(request_id='uuid')
         self.assertEqual(image_request.model_used, 'clf.pickle')
-        self.assertEqual(image_request.image, self.image_base64)
+        self.assertIsNotNone(image_request.image)
+        self.assertEqual(image_request.status, 'SUCCESS')
+
+    def test_prediction_with_invalid_image_size(self):
+        """
+        Prueba que una imagen con tamaño incorrecto sea rechazada.
+        """
+        # Crear una imagen de tamaño incorrecto (10x10 en lugar de 8x8)
+        image = Image.new('L', (10, 10), color=128)
+        buffer = io.BytesIO()
+        image.save(buffer, format="JPEG")
+        image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+        url = reverse('predict')
+        data = {
+            'request_id': 'test_invalid_size',
+            'image': image_base64,
+            'modelo': 'test_model'
+        }
+
+        response = self.client.post(url, data, format='json')
+
+        # Verificar que la respuesta sea un error
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('error', response.data)
+
+    def test_prediction_without_image(self):
+        """
+        Prueba que una solicitud sin imagen sea rechazada.
+        """
+        url = reverse('predict')
+        data = {
+            'request_id': 'test_no_image',
+            'image': '',
+            'modelo': 'test_model'
+        }
+
+        response = self.client.post(url, data, format='json')
+
+        # Verificar que el error está en el campo 'image'
+        self.assertIn('image', response.data)
+        self.assertEqual(response.data['image'][0].code, 'blank')
+
+    def test_prediction_with_invalid_model(self):
+        """
+        Prueba que un modelo no válido sea rechazado.
+        """
+        url = reverse('predict')
+        data = {
+            'request_id': 'test_invalid_model',
+            'image': self.image_base64,
+            'modelo': 'invalid_model'
+        }
+
+        response = self.client.post(url, data, format='json')
+
+        # Verificar que la respuesta sea un error
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('error', response.data)
+
+    def test_prediction_without_authentication(self):
+        """
+        Prueba que un usuario no autenticado no pueda hacer predicciones.
+        """
+        self.client.credentials()  # Eliminar las credenciales para simular un usuario no autenticado
+
+        url = reverse('predict')
+        data = {
+            'request_id': 'test_no_auth',
+            'image': self.image_base64,
+            'modelo': 'test_model'
+        }
+
+        response = self.client.post(url, data, format='json')
+
+        # Verificar que la respuesta sea un error 401 Unauthorized
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

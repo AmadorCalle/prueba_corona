@@ -2,7 +2,7 @@
 Este proyecto es una API desarrollada con Django y Django REST Framework que permite realizar clasificación de imágenes utilizando un modelo de Machine Learning. Los usuarios pueden enviar imágenes codificadas en base64 y la API procesa las imágenes, ejecuta una clasificación y almacena los resultados en una base de datos. Está diseñado para facilitar la integración de servicios de clasificación de imágenes en aplicaciones empresariales.
 
 ## Lo que aprenderás siguendo esta guía
-Esta guía te permitirá usar la API en su despliegue en la dirección http://34.174.155.71/api/predict/. Tenemos 3 secciones sobre el uso de la API. En la primera sección aprenderás a usarla y en las dos siguientes tendrás una breve descripción de parámetros técnicos.
+Esta guía te permitirá usar la API en su despliegue en la dirección http://34.174.132.197/api/predict/. Tenemos 3 secciones sobre el uso de la API. En la primera sección aprenderás a usarla y en las dos siguientes tendrás una breve descripción de parámetros técnicos.
 
 1. Primer contacto: autenticación.
 2. Endpoints.
@@ -30,7 +30,7 @@ Una vez descargado lo abriremos y en su interfaz presionaremos en agregar un nue
 
 Allí configuraremos la solicitud de la siguiente manera:
 * Método HTTP: POST
-* URL: http://34.174.155.71/api/predict/
+* URL: http://34.174.132.197/api/predict/
 
 En el menú Headers haremos lo siguiente:
 * Key: Content-Type
@@ -48,24 +48,24 @@ Cliqueamos en "Send" y en el recuadro inferior (zona de resultados) obtendremos 
 
 ```
 {
-    "token": "f9846b993b5f7c3aad67475f21ad351c84cbc8ec"
+    "token": "a427866636a509024fd998c10bc55b72653c6edc"
 }
 ```
 Este es el token asignado al usuario "usuario_1" y "contra_987@".
 
 ### 1.2. Clasificación de imágenes mediante la API
 
-Ahora que conocemos el token asociado a un usuario (username: usuario_1, password: contra_987@, token: f9846b993b5f7c3aad67475f21ad351c84cbc8ec), entonces procedemos a hacer la solicitud a la API con la que obtendremos el resultado del modelo, es decir, la clasificación de nuestra imagen.
+Ahora que conocemos el token asociado a un usuario (username: usuario_1, password: contra_987@, token: a427866636a509024fd998c10bc55b72653c6edc), entonces procedemos a hacer la solicitud a la API con la que obtendremos el resultado del modelo, es decir, la clasificación de nuestra imagen.
 
 La solicitud por Postman será la siguiente:
 * Método HTTP: POST
-* URL: http://34.174.155.71/api/predict/
+* URL: http://34.174.132.197/api/predict/
 
 Ahora tendremos dos Headers:
 * Key: Content-Type
 * Value: application/json
 * Key: Authorization
-* Value: Token f9846b993b5f7c3aad67475f21ad351c84cbc8ec
+* Value: Token a427866636a509024fd998c10bc55b72653c6edc
 
 Cambia el contenido del recuadro de Body:
 * raw
@@ -87,7 +87,13 @@ Ten presente que:
 ¡Listo! Tendrás como resultado en el recuadro inferior la clasificación de tu imagen. El resultado debe ser similar al siguiente:
 
 ```
-{"request_id":"uuid","prediction":[8]}
+{
+    "request_id": "uuid",
+    "classification": [
+        8
+    ],
+    "message": "Clasificación realizada con éxito."
+}
 ```
 
 Esto significa que tu imagen contiene un 8.
@@ -97,15 +103,15 @@ Puedes obtener los mismos resultados anteriores usando las siguientes instruccio
 
 Esta primera instrucción se usa para obtener el token:
 ```
-curl -X POST http://34.174.155.71/api/token-auth/ -H "Content-Type: application/json" -d "{\"username\": \"usuario_1\", \"password\": \"contra_987@\"}"
+curl -X POST http://34.174.132.197/api/token-auth/ -H "Content-Type: application/json" -d "{\"username\": \"usuario_1\", \"password\": \"contra_987@\"}"
 ```
 Y esta segunda instrucción se usa para ejecutar la API:
 ```
-curl -X POST http://34.174.155.71/api/predict/ -H "Content-Type: application/json" -H "Authorization: Token f9846b993b5f7c3aad67475f21ad351c84cbc8ec" -d "{\"request_id\": \"uuid\", \"modelo\": \"clf.pickle\", \"image\": \"/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAAIAAgBAREA/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/9oACAEBAAA/AOYitTJ8BgJYkn8tZJ4maMLFEpnC5EhXJnBVh5YYZR884Ar/2Q==\"}"
+curl -X POST http://34.174.132.197/api/predict/ -H "Content-Type: application/json" -H "Authorization: Token a427866636a509024fd998c10bc55b72653c6edc" -d "{\"request_id\": \"uuid\", \"modelo\": \"clf.pickle\", \"image\": \"/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAAIAAgBAREA/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/9oACAEBAAA/AOYitTJ8BgJYkn8tZJ4maMLFEpnC5EhXJnBVh5YYZR884Ar/2Q==\"}"
 ```
 ¡Listo! El resultado será un output similar a este:
 ```
-{"request_id":"uuid","prediction":[8],"message":"Datos guardados correctamente."}
+{"request_id":"uuid","classification":[8],"message":"Clasificación realizada con éxito."}
 ```
 
 ## 2.Endpoints

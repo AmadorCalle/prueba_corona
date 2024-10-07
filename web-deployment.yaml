@@ -73,6 +73,6 @@ spec:
     app: web  # Selector de etiquetas
   ports:
     - protocol: TCP  # Protocolo
-      port: 8000  # Puerto del Service
+      port: 80  # Puerto del Service
       targetPort: 8000  # Puerto del contenedor
   type: LoadBalancer  # Tipo de Service

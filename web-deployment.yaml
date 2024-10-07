@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: web  # Nombre del contenedor
-        image: gcr.io/ml-web-project-437118/ml_web_api:v1.6  # Imagen del contenedor
+        image: gcr.io/ml-web-project-437118/ml_web-web:latest  # Imagen del contenedor
         ports:
         - containerPort: 8000  # Puerto del contenedor
         env:
@@ -47,18 +47,18 @@ spec:
         volumeMounts:
         - name: static-volume  # Volumen montado
           mountPath: /app/static  # Ruta de montaje
-        livenessProbe:  # Verificación de salud del contenedor
-          httpGet:
-            path: /health
-            port: 8000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:  # Verificación de disponibilidad del contenedor
-          httpGet:
-            path: /ready
-            port: 8000
-          initialDelaySeconds: 30
-          periodSeconds: 10
+        # livenessProbe:  # Verificación de salud del contenedor
+        #   httpGet:
+        #     path: /health
+        #     port: 8000
+        #   initialDelaySeconds: 30
+        #   periodSeconds: 10
+        # readinessProbe:  # Verificación de disponibilidad del contenedor
+        #   httpGet:
+        #     path: /ready
+        #     port: 8000
+        #   initialDelaySeconds: 30
+        #   periodSeconds: 10
       volumes:
       - name: static-volume  # Volumen persistente
         persistentVolumeClaim:
@@ -73,6 +73,6 @@ spec:
     app: web  # Selector de etiquetas
   ports:
     - protocol: TCP  # Protocolo
-      port: 80  # Puerto del Service
+      port: 8000  # Puerto del Service
       targetPort: 8000  # Puerto del contenedor
   type: LoadBalancer  # Tipo de Service

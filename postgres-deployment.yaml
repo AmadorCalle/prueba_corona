@@ -12,13 +12,13 @@ spec:
       labels:
         app: postgres  # Etiquetas del Pod
     spec:
-      initContainers:
-      - name: init-cleaner  # Contenedor de inicialización
-        image: busybox  # Imagen del contenedor
-        command: ['sh', '-c', 'rm -rf /var/lib/postgresql/data/*']  # Comando para limpiar datos
-        volumeMounts:
-        - name: postgres-data  # Volumen montado
-          mountPath: /var/lib/postgresql/data  # Ruta de montaje
+      # initContainers:
+      # - name: init-cleaner  # Contenedor de inicialización
+      #   image: busybox  # Imagen del contenedor
+      #   command: ['sh', '-c', 'rm -rf /var/lib/postgresql/data/*']  # Comando para limpiar datos
+      #   volumeMounts:
+      #   - name: postgres-data  # Volumen montado
+      #     mountPath: /var/lib/postgresql/data  # Ruta de montaje
       containers:
       - name: postgres  # Contenedor principal
         image: postgres:13  # Imagen de PostgreSQL

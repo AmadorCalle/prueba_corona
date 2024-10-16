@@ -1,13 +1,13 @@
 steps:
-  # Paso 1: Construir la imagen Docker
+  # Construir la imagen Docker
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'gcr.io/prueba-tecnica-corona/api-prueba-tecnica-corona:$COMMIT_SHA', '.']
 
-  # Paso 2: Subir la imagen a Google Container Registry
+  # Subir la imagen a Google Container Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/prueba-tecnica-corona/api-prueba-tecnica-corona:$COMMIT_SHA']
 
-  # Paso 3: Obtener las credenciales para el clúster de GKE
+  # Obtener las credenciales para el clúster de GKE
   - name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
     args:
@@ -15,7 +15,7 @@ steps:
       - |
         gcloud container clusters get-credentials api-cluster --zone southamerica-east1-a --project prueba-tecnica-corona
 
-  # Paso 4: Actualizar el despliegue en GKE
+  # Actualizar el despliegue en GKE
   - name: 'gcr.io/cloud-builders/kubectl'
     args:
       - set

@@ -40,6 +40,11 @@ spec:
             secretKeyRef:
               name: db-secret  # Referencia al secreto
               key: DB_PASSWORD
+        - name: PGDATA  # Añadir la variable PGDATA desde el secreto
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: PGDATA
         volumeMounts:
         - name: postgres-data  # Volumen montado
           mountPath: /var/lib/postgresql/data  # Ruta de montaje

@@ -14,10 +14,12 @@ spec:
     spec:
       containers:
       - name: web  # Nombre del contenedor
-        image: gcr.io/ml-web-project-437118/ml_web-web:latest  # Imagen del contenedor
+        image: gcr.io/prueba-tecnica-corona/api-prueba-tecnica-corona:1.0.0  # Imagen del contenedor
         ports:
-        - containerPort: 8000  # Puerto del contenedor
+        - containerPort: 80  # Puerto del contenedor
         env:
+        - name: ALLOWED_HOSTS
+          value: "34.95.224.41"
         - name: DB_NAME  # Variable de entorno para el nombre de la base de datos
           valueFrom:
             secretKeyRef:
@@ -40,23 +42,23 @@ spec:
         resources:  # Límites y solicitudes de recursos
           requests:
             memory: "256Mi"  # Memoria mínima solicitada
-            cpu: "250m"      # CPU mínima solicitada
+            cpu: "200m"      # CPU mínima solicitada
           limits:
             memory: "512Mi"  # Límite máximo de memoria
-            cpu: "500m"      # Límite máximo de CPU
+            cpu: "300m"      # Límite máximo de CPU
         volumeMounts:
         - name: static-volume  # Volumen montado
           mountPath: /app/static  # Ruta de montaje
         # livenessProbe:  # Verificación de salud del contenedor
         #   httpGet:
         #     path: /health
-        #     port: 8000
+        #     port: 80
         #   initialDelaySeconds: 30
         #   periodSeconds: 10
         # readinessProbe:  # Verificación de disponibilidad del contenedor
         #   httpGet:
         #     path: /ready
-        #     port: 8000
+        #     port: 80
         #   initialDelaySeconds: 30
         #   periodSeconds: 10
       volumes:
@@ -74,5 +76,5 @@ spec:
   ports:
     - protocol: TCP  # Protocolo
       port: 80  # Puerto del Service
-      targetPort: 8000  # Puerto del contenedor
+      targetPort: 80  # Puerto del contenedor
   type: LoadBalancer  # Tipo de Service

@@ -1,0 +1,20 @@
+steps:
+  # Construir la imagen Docker
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/prueba-tecnica-corona/api-prueba-tecnica-corona:$COMMIT_SHA', '.']
+
+  # Subir la imagen a Google Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/prueba-tecnica-corona/api-prueba-tecnica-corona:$COMMIT_SHA']
+
+  # Actualizar el despliegue en GKE
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      - set
+      - image
+      - deployment/web  # Asegúrate de que coincida con el nombre de tu despliegue en GKE
+      - web=gcr.io/prueba-tecnica-corona/api-prueba-tecnica-corona:$COMMIT_SHA
+      - --namespace=default
+
+images:
+  - 'gcr.io/prueba-tecnica-corona/api-prueba-tecnica-corona:$COMMIT_SHA'

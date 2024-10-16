@@ -15,7 +15,7 @@ metadata:
   name: static-pvc  # Nombre del PVC para archivos estáticos
 spec:
   accessModes:
-    - ReadWriteOnce  # Modo de acceso: lectura/escritura por un nodo
+    - ReadWriteOnce # Modo de acceso: lectura/escritura por un nodo
   resources:
     requests:
       storage: 100Mi  # Solicitud de almacenamiento: 100 MiB

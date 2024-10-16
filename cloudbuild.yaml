@@ -19,7 +19,6 @@ steps:
 # Opciones de logging y bucket de almacenamiento de logs
 options:
   logging: CLOUD_LOGGING_ONLY  # Registrar solo en Cloud Logging
-  logsBucket: gs://bucket-prueba-corona  # Bucket de Google Cloud Storage para los logs
 
 # Imágenes que serán subidas
 images:

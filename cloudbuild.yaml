@@ -7,12 +7,20 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/prueba-tecnica-corona/api-prueba-tecnica-corona:$COMMIT_SHA']
 
-  # Paso 3: Actualizar el despliegue en GKE
+  # Paso 3: Obtener las credenciales para el clúster de GKE
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud container clusters get-credentials api-cluster --zone southamerica-east1-a --project prueba-tecnica-corona
+
+  # Paso 4: Actualizar el despliegue en GKE
   - name: 'gcr.io/cloud-builders/kubectl'
     args:
       - set
       - image
-      - deployment/web  # Asegúrate de que coincida con el nombre de tu despliegue en GKE
+      - deployment/web  # Cambia 'web' si es necesario
       - web=gcr.io/prueba-tecnica-corona/api-prueba-tecnica-corona:$COMMIT_SHA
       - --namespace=default
 

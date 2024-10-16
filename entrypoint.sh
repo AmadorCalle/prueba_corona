@@ -18,4 +18,4 @@ fi
 python manage.py collectstatic --noinput --clear
 
 # Ejecutar el servidor de Django
-exec python manage.py runserver 0.0.0.0:8000
+exec python manage.py runserver 0.0.0.0:80

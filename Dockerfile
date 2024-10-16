@@ -26,17 +26,14 @@ ENV PYTHONUNBUFFERED=1
 # Crear un directorio para archivos estáticos
 RUN mkdir -p /app/static
 
-# Copiar el script de entrypoint
-COPY ./entrypoint.sh /entrypoint.sh
-
 # Dar permisos de ejecución al script de entrypoint
-RUN chmod +x /entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
-# Exponer el puerto 8000 para el servidor de desarrollo de Django
-EXPOSE 8000
+# Exponer el puerto 80 para el servidor de desarrollo de Django
+EXPOSE 80
 
 # Definir el entrypoint
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/app/entrypoint.sh"]
 
 # Comando por defecto para ejecutar el servidor de Django
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:80"]

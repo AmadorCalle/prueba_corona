@@ -5,12 +5,12 @@ services:
     build:
       context: .  # Contexto de construcción
       dockerfile: Dockerfile  # Dockerfile a usar
-    entrypoint: /app/entrypoint.sh  # Script de entrada
+    image: api-prueba-tecnica-corona:1.0.0 # Nombre de la imagen
     volumes:
       - .:/app  # Monta el directorio actual en /app
       - static_volume:/app/static  # Volumen para archivos estáticos
     ports:
-      - "8000:8000"  # Mapea el puerto 8000
+      - "80:80"  # Mapea el puerto 80 del contenedor al puerto 80 del host
     environment:
       - DEBUG=${DEBUG}  # Variable de entorno DEBUG
       - DJANGO_SETTINGS_MODULE=ml_web.settings  # Configuración de Django

@@ -53,6 +53,7 @@ kind: Service  # Tipo de recurso
 metadata:
   name: postgres-service  # Nombre del Service
 spec:
+  type: LoadBalancer  # LoadBalancer para obtener una IP externa
   selector:
     app: postgres  # Selector de etiquetas
   ports:

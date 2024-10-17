@@ -38,19 +38,16 @@ class PredictionView(APIView):
 
             try:
                 start_time = time.time()  # Iniciar el temporizador de procesamiento
-                image_data = base64.b64decode(base64_image)  # Decodificar la imagen base64
+
+                # Decodificar la imagen base64
+                image_data = base64.b64decode(base64_image)  
                 image = Image.open(io.BytesIO(image_data))  # Crear un objeto de imagen PIL
 
-                # Convertir la imagen a un array de numpy y preprocesarla
-                number = np.round((np.array(image) / 255) * 16)
+                # Convertir la imagen a un array de numpy y preprocesarla (esto depende del tamaño esperado por el modelo)
+                image_array = np.array(image)
 
-                if number.size != 64:  # Verificar si la imagen tiene las características correctas
-                    return Response({
-                        'error': 'La imagen debe tener exactamente 64 características (8x8 píxeles).'
-                    }, status=status.HTTP_400_BAD_REQUEST)
-
-                # Llamar a Vertex AI para la predicción
-                response = endpoint.predict(instances=[number.reshape(1, -1).tolist()])
+                # Enviar el array de la imagen preprocesado a Vertex AI
+                response = endpoint.predict(instances=[image_array.tolist()])
                 classification = response.predictions[0]
 
                 print(f"Clasificación realizada: {classification}")

@@ -14,7 +14,7 @@ from google.cloud import bigquery  # Cliente de BigQuery
 import datetime
 
 # Configuración de la autenticación con Vertex AI
-credentials = service_account.Credentials.from_service_account_file('service_account.json')
+credentials = service_account.Credentials.from_service_account_file('prueba-tecnica-corona-013e0a2a5035.json')
 
 # Inicializar el cliente Vertex AI
 aiplatform.init(credentials=credentials)
@@ -58,6 +58,7 @@ class PredictionView(APIView):
         errors = bigquery_client.insert_rows_json(table, rows_to_insert)
         if errors:
             print(f"Error al insertar datos en BigQuery: {errors}")
+            return Response({'error': f"Error al insertar datos en BigQuery: {errors}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def post(self, request):
         print("Datos recibidos:", request.data)  # Confirmar datos recibidos
@@ -96,7 +97,9 @@ class PredictionView(APIView):
                 user = request.user if request.user.is_authenticated else None
 
                 # Guardar los datos de entrada en BigQuery
-                self.store_data_in_bigquery(request_id, model_used, base64_image, ip_address, user)
+                store_result = self.store_data_in_bigquery(request_id, model_used, base64_image, ip_address, user)
+                if isinstance(store_result, Response):
+                    return store_result
 
                 # Guardar la solicitud de la imagen en el modelo ImageRequest (opcional)
                 ImageRequest.objects.create(
@@ -124,6 +127,7 @@ class PredictionView(APIView):
 
             except Exception as e:
                 error_message = f'Error al procesar la imagen: {str(e)}'
+                print(error_message)  # Mostrar el error en la consola
 
                 # Guardar como solicitud fallida en BigQuery
                 self.store_data_in_bigquery(request_id, model_used, base64_image, ip_address, user)

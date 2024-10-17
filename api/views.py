@@ -7,11 +7,12 @@ import base64
 import io
 from PIL import Image
 import numpy as np
-import time  # Para medir el tiempo de procesamiento
+import time
 from google.cloud import aiplatform
 from google.oauth2 import service_account
-from google.cloud import bigquery  # Cliente de BigQuery
+from google.cloud import bigquery
 import datetime
+import logging  # Para agregar logs adicionales
 
 # Configuración de la autenticación con Vertex AI
 credentials = service_account.Credentials.from_service_account_file('prueba-tecnica-corona-013e0a2a5035.json')
@@ -29,6 +30,9 @@ bigquery_client = bigquery.Client(credentials=credentials)
 dataset_id = 'predictions_data'  # Dataset existente
 table_id = 'inputs'              # Tabla a la que guardaremos los datos
 
+# Configurar logging
+logging.basicConfig(level=logging.INFO)
+
 class PredictionView(APIView):
 
     def get_view_name(self):
@@ -36,6 +40,7 @@ class PredictionView(APIView):
 
     def store_data_in_bigquery(self, request_id, model_used, base64_image, ip_address, user):
         """Función para almacenar los datos en BigQuery"""
+        logging.info(f"Insertando datos en BigQuery para request_id: {request_id}")
         table_ref = bigquery_client.dataset(dataset_id).table(table_id)
         table = bigquery_client.get_table(table_ref)
         
@@ -47,7 +52,7 @@ class PredictionView(APIView):
             {
                 "request_id": request_id,
                 "modelo": model_used,
-                "image": base64_image,  # Almacenar el base64 de la imagen
+                "image": base64_image,
                 "ip_address": ip_address,
                 "user": user if user else 'anonymous',
                 "timestamp": timestamp
@@ -55,13 +60,16 @@ class PredictionView(APIView):
         ]
         
         # Insertar los datos en BigQuery
+        logging.info(f"Datos a insertar: {rows_to_insert}")
         errors = bigquery_client.insert_rows_json(table, rows_to_insert)
         if errors:
-            print(f"Error al insertar datos en BigQuery: {errors}")
+            logging.error(f"Error al insertar datos en BigQuery: {errors}")
             return Response({'error': f"Error al insertar datos en BigQuery: {errors}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        logging.info(f"Datos insertados correctamente en BigQuery para request_id: {request_id}")
 
     def post(self, request):
-        print("Datos recibidos:", request.data)  # Confirmar datos recibidos
+        logging.info("Datos recibidos en la solicitud")
+        print("Datos recibidos:", request.data)
 
         # Validar los datos con el PredictionSerializer
         serializer = PredictionSerializer(data=request.data)
@@ -72,11 +80,11 @@ class PredictionView(APIView):
             model_used = serializer.validated_data['modelo']
 
             try:
-                start_time = time.time()  # Iniciar el temporizador de procesamiento
+                start_time = time.time()
 
                 # Decodificar la imagen base64
-                image_data = base64.b64decode(base64_image)  
-                image = Image.open(io.BytesIO(image_data))  # Crear un objeto de imagen PIL
+                image_data = base64.b64decode(base64_image)
+                image = Image.open(io.BytesIO(image_data))
 
                 # Convertir la imagen a un array de numpy y preprocesarla
                 image_array = np.array(image)
@@ -85,9 +93,9 @@ class PredictionView(APIView):
                 response = endpoint.predict(instances=[image_array.tolist()])
                 classification = response.predictions[0]
 
-                print(f"Clasificación realizada: {classification}")
+                logging.info(f"Clasificación realizada: {classification}")
 
-                end_time = time.time()  # Terminar el temporizador de procesamiento
+                end_time = time.time()
                 processing_time = end_time - start_time
 
                 # Obtener la dirección IP del solicitante
@@ -127,7 +135,7 @@ class PredictionView(APIView):
 
             except Exception as e:
                 error_message = f'Error al procesar la imagen: {str(e)}'
-                print(error_message)  # Mostrar el error en la consola
+                logging.error(error_message)
 
                 # Guardar como solicitud fallida en BigQuery
                 self.store_data_in_bigquery(request_id, model_used, base64_image, ip_address, user)
@@ -142,8 +150,8 @@ class PredictionView(APIView):
                     status='FAILED'
                 )
 
-                # Serializar el error y enviarlo en la respuesta
                 return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
 
         else:
+            logging.error(f"Error en la validación de datos: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -1,3 +1,6 @@
+# Ignorar el archivo de secretos
+prueba-tecnica-corona-013e0a2a5035.json
+
 # Django #
 *.log
 *.pot

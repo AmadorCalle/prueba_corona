@@ -1,72 +1,102 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from .serializers import PredictionSerializer, PredictionResponseSerializer
+from .models import ImageRequest
+import base64
+import io
+from PIL import Image
+import numpy as np
+import time  # Para medir el tiempo de procesamiento
+from google.cloud import aiplatform
 from google.oauth2 import service_account
-from google.cloud import bigquery
-import logging  # Para agregar logs adicionales
-import json  # Para convertir las instancias a JSON
 
-# Configuración de la autenticación con Google Cloud
-credentials = service_account.Credentials.from_service_account_file('prueba-tecnica-corona-013e0a2a5035.json')
+# Configuración de la autenticación con Vertex AI
+credentials = service_account.Credentials.from_service_account_file('service_account.json')
 
-# Inicializar cliente de BigQuery
-bigquery_client = bigquery.Client(credentials=credentials)
+# Inicializar el cliente Vertex AI
+aiplatform.init(credentials=credentials)
 
-# Nombre del dataset y tabla en BigQuery
-dataset_id = 'predictions_data'  # Dataset existente
-table_id = 'inputs'              # Tabla a la que guardaremos los datos
-
-# Configurar logging
-logging.basicConfig(level=logging.INFO)
+# Conectar con el endpoint de Vertex AI
+endpoint = aiplatform.Endpoint(endpoint_name="projects/prueba-tecnica-corona/locations/southamerica-east1/endpoints/9046034005434040320")
 
 class PredictionView(APIView):
 
     def get_view_name(self):
-        return "API RESTful para almacenar predicciones en BigQuery"
-
-    def store_data_in_bigquery(self, instances):
-        """Función para almacenar los datos de las instancias en BigQuery"""
-        logging.info(f"Insertando datos en BigQuery: {instances}")
-        table_ref = bigquery_client.dataset(dataset_id).table(table_id)
-        table = bigquery_client.get_table(table_ref)
-
-        # Convertir las instancias a formato JSON y prepararlas para la inserción
-        rows_to_insert = [
-            {
-                "image": json.dumps(instance)  # Convertir la instancia a formato JSON
-            } 
-            for instance in instances
-        ]
-        
-        # Insertar los datos en BigQuery
-        logging.info(f"Datos a insertar: {rows_to_insert}")
-        errors = bigquery_client.insert_rows_json(table, rows_to_insert)
-        if errors:
-            logging.error(f"Error al insertar datos en BigQuery: {errors}")
-            return False
-        logging.info(f"Datos insertados correctamente en BigQuery.")
-        return True
+        return "API RESTful de clasificación de imágenes"
 
     def post(self, request):
-        logging.info("Datos recibidos en la solicitud")
-        print("Datos recibidos:", request.data)
+        print("Datos recibidos:", request.data)  # Confirmar datos recibidos
 
-        try:
-            # Extraer las instancias del cuerpo de la solicitud
-            instances = request.data.get("instances", None)
+        # Validar los datos con el PredictionSerializer
+        serializer = PredictionSerializer(data=request.data)
 
-            if instances:
-                # Almacenar las instancias en BigQuery
-                store_success = self.store_data_in_bigquery(instances)
-                if store_success:
-                    return Response({"message": "Datos almacenados correctamente en BigQuery."}, status=status.HTTP_200_OK)
+        if serializer.is_valid():
+            request_id = serializer.validated_data['request_id']
+            base64_image = serializer.validated_data['image']
+            model_used = serializer.validated_data['modelo']
+
+            try:
+                start_time = time.time()  # Iniciar el temporizador de procesamiento
+
+                # Decodificar la imagen base64
+                image_data = base64.b64decode(base64_image)  
+                image = Image.open(io.BytesIO(image_data))  # Crear un objeto de imagen PIL
+
+                # Convertir la imagen a un array de numpy y preprocesarla (esto depende del tamaño esperado por el modelo)
+                image_array = np.array(image)
+
+                # Enviar el array de la imagen preprocesado a Vertex AI
+                response = endpoint.predict(instances=[image_array.tolist()])
+                classification = response.predictions[0]
+
+                print(f"Clasificación realizada: {classification}")
+
+                end_time = time.time()  # Terminar el temporizador de procesamiento
+                processing_time = end_time - start_time
+
+                # Obtener la dirección IP del solicitante
+                ip_address = request.META.get('REMOTE_ADDR', None)
+
+                # Obtener el usuario autenticado, si lo hay
+                user = request.user if request.user.is_authenticated else None
+
+                # Guardar la solicitud de la imagen en el modelo ImageRequest
+                ImageRequest.objects.create(
+                    request_id=request_id,
+                    image=base64_image,
+                    model_used=model_used,
+                    processing_time=processing_time,
+                    prediction_result=classification,
+                    ip_address=ip_address,
+                    user=user,
+                    status='SUCCESS'
+                )
+
+                # Serializar la respuesta con PredictionResponseSerializer
+                response_serializer = PredictionResponseSerializer(data={
+                    'request_id': request_id,
+                    'classification': classification,
+                    'message': 'Clasificación realizada con éxito.'
+                })
+
+                if response_serializer.is_valid():
+                    return Response(response_serializer.data, status=status.HTTP_200_OK)
                 else:
-                    return Response({"error": "Error al almacenar datos en BigQuery."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            else:
-                logging.error("No se proporcionaron instancias en la solicitud.")
-                return Response({"error": "No se proporcionaron instancias en la solicitud."}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response(response_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        except Exception as e:
-            error_message = f'Error al procesar la solicitud: {str(e)}'
-            logging.error(error_message)
-            return Response({'error': error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            except Exception as e:
+                error_message = f'Error al procesar la imagen: {str(e)}'
+
+                # Guardar como solicitud fallida
+                ImageRequest.objects.create(
+                    request_id=request_id,
+                    image=base64_image,
+                    model_used=model_used,
+                    ip_address=request.META.get('REMOTE_ADDR', None),
+                    user=request.user if request.user.is_authenticated else None,
+                    status='FAILED'
+                )
+
+                # Serializar el error y enviarlo en la respuesta
+                return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)

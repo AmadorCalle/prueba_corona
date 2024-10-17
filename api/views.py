@@ -33,7 +33,7 @@ class PredictionView(APIView):
         # Preparar los datos para la inserción
         rows_to_insert = [
             {
-                "image": str(instances)  # Almacenar las instancias en formato de cadena (JSON)
+                "image": "Hola"  # Almacenar las instancias en formato de cadena (JSON)
             }
         ]
         

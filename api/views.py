@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from google.oauth2 import service_account
 from google.cloud import bigquery
-import time
 import logging  # Para agregar logs adicionales
+import json  # Para convertir las instancias a JSON
 
 # Configuración de la autenticación con Google Cloud
 credentials = service_account.Credentials.from_service_account_file('prueba-tecnica-corona-013e0a2a5035.json')
@@ -30,11 +30,12 @@ class PredictionView(APIView):
         table_ref = bigquery_client.dataset(dataset_id).table(table_id)
         table = bigquery_client.get_table(table_ref)
 
-        # Preparar los datos para la inserción
+        # Convertir las instancias a formato JSON y prepararlas para la inserción
         rows_to_insert = [
             {
-                "image": "Hola"  # Almacenar las instancias en formato de cadena (JSON)
-            }
+                "image": json.dumps(instance)  # Convertir la instancia a formato JSON
+            } 
+            for instance in instances
         ]
         
         # Insertar los datos en BigQuery

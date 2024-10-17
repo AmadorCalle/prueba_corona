@@ -1,17 +1,24 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import PredictionSerializer, ImageRequestSerializer, PredictionResponseSerializer
+from .serializers import PredictionSerializer, PredictionResponseSerializer
 from .models import ImageRequest
 import base64
 import io
 from PIL import Image
 import numpy as np
-from .ml_model.model_loader import load_model
 import time  # Para medir el tiempo de procesamiento
+from google.cloud import aiplatform
+from google.oauth2 import service_account
 
-# Cargar el modelo de ML
-model = load_model("clf.pickle")
+# Configuración de la autenticación con Vertex AI
+credentials = service_account.Credentials.from_service_account_file('service_account.json')
+
+# Inicializar el cliente Vertex AI
+aiplatform.init(credentials=credentials)
+
+# Conectar con el endpoint de Vertex AI
+endpoint = aiplatform.Endpoint(endpoint_name="projects/prueba-tecnica-corona/locations/southamerica-east1/endpoints/9046034005434040320")
 
 class PredictionView(APIView):
 
@@ -20,21 +27,14 @@ class PredictionView(APIView):
 
     def post(self, request):
         print("Datos recibidos:", request.data)  # Confirmar datos recibidos
-        
+
         # Validar los datos con el PredictionSerializer
         serializer = PredictionSerializer(data=request.data)
-        
+
         if serializer.is_valid():
             request_id = serializer.validated_data['request_id']
             base64_image = serializer.validated_data['image']
             model_used = serializer.validated_data['modelo']
-
-            # Validar el modelo usado
-            valid_models = ['clf.pickle']  # Agrega los modelos válidos que tengas
-            if model_used not in valid_models:
-                return Response({
-                    'error': 'El modelo proporcionado no es válido.'
-                }, status=status.HTTP_400_BAD_REQUEST)
 
             try:
                 start_time = time.time()  # Iniciar el temporizador de procesamiento
@@ -49,8 +49,10 @@ class PredictionView(APIView):
                         'error': 'La imagen debe tener exactamente 64 características (8x8 píxeles).'
                     }, status=status.HTTP_400_BAD_REQUEST)
 
-                # Realizar la clasificación
-                classification = model.predict(number.reshape(1, -1))
+                # Llamar a Vertex AI para la predicción
+                response = endpoint.predict(instances=[number.reshape(1, -1).tolist()])
+                classification = response.predictions[0]
+
                 print(f"Clasificación realizada: {classification}")
 
                 end_time = time.time()  # Terminar el temporizador de procesamiento
@@ -62,22 +64,22 @@ class PredictionView(APIView):
                 # Obtener el usuario autenticado, si lo hay
                 user = request.user if request.user.is_authenticated else None
 
-                # Guardar la solicitud de la imagen en el modelo ImageRequest. No es necesario serializar porque solo se serializan las respuestas/solicitudes al cliente, aquí solo guardamos en la base de datos
+                # Guardar la solicitud de la imagen en el modelo ImageRequest
                 ImageRequest.objects.create(
                     request_id=request_id,
-                    image=base64_image,  # Almacenar la imagen en formato base64
+                    image=base64_image,
                     model_used=model_used,
                     processing_time=processing_time,
-                    prediction_result=classification.tolist(),  # Guardar la clasificación como JSON
+                    prediction_result=classification,
                     ip_address=ip_address,
                     user=user,
-                    status='SUCCESS'  # Suponemos que la solicitud fue exitosa
+                    status='SUCCESS'
                 )
 
                 # Serializar la respuesta con PredictionResponseSerializer
                 response_serializer = PredictionResponseSerializer(data={
                     'request_id': request_id,
-                    'classification': classification.tolist(),  # Convertir a lista si es necesario
+                    'classification': classification,
                     'message': 'Clasificación realizada con éxito.'
                 })
 
@@ -88,7 +90,7 @@ class PredictionView(APIView):
 
             except Exception as e:
                 error_message = f'Error al procesar la imagen: {str(e)}'
-    
+
                 # Guardar como solicitud fallida
                 ImageRequest.objects.create(
                     request_id=request_id,
@@ -96,8 +98,8 @@ class PredictionView(APIView):
                     model_used=model_used,
                     ip_address=request.META.get('REMOTE_ADDR', None),
                     user=request.user if request.user.is_authenticated else None,
-                    status='FAILED'  # Marca la solicitud como fallida
+                    status='FAILED'
                 )
-                
+
                 # Serializar el error y enviarlo en la respuesta
                 return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
